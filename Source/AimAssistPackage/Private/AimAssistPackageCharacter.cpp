@@ -2,15 +2,17 @@
 
 #include "AimAssistPackageCharacter.h"
 #include "AimAssistPackageProjectile.h"
+#include "Enemy.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
-
-//////////////////////////////////////////////////////////////////////////
-// AAimAssistPackageCharacter
 
 AAimAssistPackageCharacter::AAimAssistPackageCharacter()
 {
@@ -42,6 +44,8 @@ void AAimAssistPackageCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
+	ActorsToIgnore.Add(this);
+
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -50,11 +54,16 @@ void AAimAssistPackageCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-
 }
 
-//////////////////////////////////////////////////////////////////////////// Input
+void AAimAssistPackageCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (IsAimAssistEnable(DeltaTime) && Detection(hit))
+		AutoRotate(hit);
+}
 
+#pragma region Inputs Handling
 void AAimAssistPackageCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
@@ -71,7 +80,6 @@ void AAimAssistPackageCharacter::SetupPlayerInputComponent(class UInputComponent
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AAimAssistPackageCharacter::Look);
 	}
 }
-
 
 void AAimAssistPackageCharacter::Move(const FInputActionValue& Value)
 {
@@ -99,6 +107,9 @@ void AAimAssistPackageCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+#pragma endregion
+
+#pragma region Rifle Handling
 void AAimAssistPackageCharacter::SetHasRifle(bool bNewHasRifle)
 {
 	bHasRifle = bNewHasRifle;
@@ -108,3 +119,39 @@ bool AAimAssistPackageCharacter::GetHasRifle()
 {
 	return bHasRifle;
 }
+#pragma endregion
+
+#pragma region Aim Assist
+bool AAimAssistPackageCharacter::Detection(FHitResult &Hit)
+{
+	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+	FVector End = FirstPersonCameraComponent->GetForwardVector() * MaxRange + Start;
+	
+	UKismetSystemLibrary::CapsuleTraceSingleForObjects(GetWorld(), Start, End, CapsuleRadius, CapsuleHalfHeight, ActorsTypeToAim, true, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
+	
+	return Hit.bBlockingHit;
+}
+
+void AAimAssistPackageCharacter::AutoRotate(FHitResult Hit)
+{
+	FVector HitTargetRelativeLocation = Hit.GetComponent()->GetComponentLocation() - Hit.ImpactPoint;
+	HitTargetRelativeLocation.Normalize(0.0001);
+	FRotator TransformToRotation = UKismetMathLibrary::Conv_VectorToRotator(HitTargetRelativeLocation);
+	FRotator NewRotation = UKismetMathLibrary::RInterpTo(GetController()->GetControlRotation(), TransformToRotation, UGameplayStatics::GetWorldDeltaSeconds(GetWorld()), Sensibility);
+
+	GetController()->SetControlRotation(NewRotation);
+}
+
+bool AAimAssistPackageCharacter::IsAimAssistEnable(float DeltaTime)
+{
+	// Calculate the rotation speed based on the change in orientation over time
+	FVector CurrentRotation = GetActorRotation().Euler();
+	FVector deltaRotation = (CurrentRotation - PreviousRotation) / DeltaTime;
+	float rotationSpeed = deltaRotation.Size();
+	
+	PreviousRotation = CurrentRotation;
+	bool bRotationSpeedExceedsLimit = FMath::Abs(rotationSpeed) > SpeedRotationThreshold;
+
+	return bRotationSpeedExceedsLimit && GetHasRifle();
+}
+#pragma endregion

@@ -2,6 +2,8 @@
 
 #include "AimAssistPackageGameMode.h"
 #include "AimAssistPackageCharacter.h"
+#include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
 AAimAssistPackageGameMode::AAimAssistPackageGameMode()

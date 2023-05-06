@@ -39,15 +39,29 @@ class AAimAssistPackageCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	class UInputAction* MoveAction;
 
-	
-public:
-	AAimAssistPackageCharacter();
-
-protected:
-	virtual void BeginPlay();
 
 public:
-		
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings | Targetting")
+		TArray<AActor*> ActorsToIgnore;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings | Targetting")
+		TArray<TEnumAsByte<EObjectTypeQuery>> ActorsTypeToAim;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
+		float Sensibility = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
+		float SpeedRotationThreshold = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
+		float MaxRange = 1500.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
+		float CapsuleRadius = 25.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
+		float CapsuleHalfHeight = 25.0f;
+
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
@@ -64,24 +78,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 	bool GetHasRifle();
 
+	UFUNCTION(BlueprintCallable, Category = "Aim assist Utility")
+	bool Detection(FHitResult& Hit);
+
+	UFUNCTION(BlueprintCallable, Category = "Aim assist Utility")
+	void AutoRotate(FHitResult hit);
+
 protected:
-	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
-
-	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+	bool IsAimAssistEnable(float DeltaTime);
 
-protected:
-	// APawn interface
+	virtual void BeginPlay();
+	virtual void Tick(float v);
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
-	// End of APawn interface
+
+
 
 public:
-	/** Returns Mesh1P subobject **/
+	AAimAssistPackageCharacter();
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
-	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
 
+private:
+	FHitResult hit;
+	FVector PreviousRotation = FVector::Zero();
 };
 
