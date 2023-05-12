@@ -84,7 +84,7 @@ public:
 
 	/** Setter to set the bool */
 	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void SetHasRifle(bool bNewHasRifle, FString RifleName);
+	void SetHasRifle(bool bNewHasRifle, UTP_WeaponComponent* weapon);
 
 	/** Getter for the bool */
 	UFUNCTION(BlueprintCallable, Category = Weapon)
@@ -114,6 +114,7 @@ protected:
 
 
 public:
+	FTransform LastPlace;
 	AAimAssistPackageCharacter();
 	void KillPlayer();
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
@@ -126,7 +127,7 @@ private:
 	float CurrentHealth;
 	FVector PreviousRotation = FVector::Zero();
 	UPrimitiveComponent* SelectedComponent = nullptr;
-	FString rifleName;
+	UTP_WeaponComponent* HeldWeapon = nullptr;
 	FVector PlayerStartLocation;
 };
 

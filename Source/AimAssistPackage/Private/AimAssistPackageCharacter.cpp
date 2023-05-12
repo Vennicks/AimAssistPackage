@@ -117,10 +117,10 @@ void AAimAssistPackageCharacter::Look(const FInputActionValue& Value)
 #pragma endregion
 
 #pragma region Rifle Handling
-void AAimAssistPackageCharacter::SetHasRifle(bool bNewHasRifle, FString RifleName)
+void AAimAssistPackageCharacter::SetHasRifle(bool bNewHasRifle, UTP_WeaponComponent* weapon)
 {
 	bHasRifle = bNewHasRifle;
-	rifleName = RifleName;
+	HeldWeapon = weapon;
 }
 
 bool AAimAssistPackageCharacter::GetHasRifle()
@@ -130,14 +130,12 @@ bool AAimAssistPackageCharacter::GetHasRifle()
 
 void AAimAssistPackageCharacter::DropRifle()
 {
-	TArray<USceneComponent*> Components = Mesh1P->GetAttachChildren();
-	for (auto component : Components)
-	{
-		component->DestroyComponent();
-	}
-	
+	HeldWeapon->DestroyComponent(true);
+	SetHasRifle(false, nullptr);
 	if (WeaponToSpawn)
-		GetWorld()->SpawnActor<AActor>(WeaponToSpawn, GetTransform());
+	{
+		LastPlace = GetTransform();
+	}
 	
 }
 
@@ -211,9 +209,9 @@ float AAimAssistPackageCharacter::TakeDamage(float DamageAmount, FDamageEvent co
 
 void AAimAssistPackageCharacter::KillPlayer()
 {
-	// Get the current level name
-	const FString& CurrentLevelName = GetWorld()->GetMapName();
-
-	// Reopen the current level
-	UGameplayStatics::OpenLevel(GetWorld(), FName(*CurrentLevelName), true);
+	HasDied = true;
+	DropRifle();
+	CurrentHealth = HealthPointMax;
+	SetActorLocation(PlayerStartLocation);
+	GetWorld()->SpawnActor<AActor>(WeaponToSpawn, LastPlace);
 }
