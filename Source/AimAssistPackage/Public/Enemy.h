@@ -25,7 +25,7 @@ public:
 		UCapsuleComponent* LegZone;
 		UAnimMontage* FireAnimation;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-		USoundBase* FireSound;;
+		USoundBase* FireSound;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = 0, UIMax = 100), Category = "Weapon")
 		int AimPercentage = 20;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = 0, UIMax = 100), Category = "Weapon")
