@@ -4,6 +4,7 @@
 #include "TP_WeaponComponent.h"
 #include "AimAssistPackageCharacter.h"
 #include "AimAssistPackageProjectile.h"
+#include "Enemy.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -38,11 +39,11 @@ void UTP_WeaponComponent::Fire()
 		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor(255, 0, 0), false, 1, 0, 2);
 		FCollisionQueryParams param;
 		param.AddIgnoredActor(Character);
-		GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECollisionChannel::ECC_Visibility, param);
+		GetWorld()->LineTraceSingleByProfile(Hit, StartLocation, EndLocation, "Pawn", param);
 		if (Hit.GetActor() != nullptr)
 		{
 			if (Hit.GetActor()->CanBeDamaged())
-				Hit.GetActor()->TakeDamage(WeaponDamage, FDamageEvent(), World->GetFirstPlayerController(), World->GetFirstPlayerController()->K2_GetPawn());
+				Hit.GetActor()->TakeDamage(Cast<AEnemy>(Hit.GetActor())->DamageCalculator(Hit.GetComponent(), WeaponDamage), FDamageEvent(), World->GetFirstPlayerController(), World->GetFirstPlayerController()->K2_GetPawn());
 		}
 	}
 
@@ -77,7 +78,7 @@ void UTP_WeaponComponent::AttachWeapon(AAimAssistPackageCharacter* TargetCharact
 	AttachToComponent(Character->GetMesh1P(), AttachmentRules, FName(TEXT("GripPoint")));
 	
 	// switch bHasRifle so the animation blueprint can switch to another animation set
-	Character->SetHasRifle(true);
+	Character->SetHasRifle(true, GetName());
 
 	// Set up action bindings
 	if (APlayerController* PlayerController = Cast<APlayerController>(Character->GetController()))

@@ -9,5 +9,6 @@ public class AimAssistPackage : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput" });
-	}
+        OptimizeCode = CodeOptimization.Never;
+    }
 }

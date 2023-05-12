@@ -8,7 +8,10 @@
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GM_Game.h"
+#include "TP_WeaponComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -39,13 +42,18 @@ AAimAssistPackageCharacter::AAimAssistPackageCharacter()
 
 }
 
+
 void AAimAssistPackageCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
-
+	CurrentHealth = HealthPointMax;
 	ActorsToIgnore.Add(this);
-
+	
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), FoundActors);
+	PlayerStartLocation = FoundActors[0]->GetActorLocation();
+	
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -59,7 +67,7 @@ void AAimAssistPackageCharacter::BeginPlay()
 void AAimAssistPackageCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (IsAimAssistEnable(DeltaTime) && Detection(hit))
+	if (GetHasRifle() && IsAimAssistEnable(DeltaTime) && Detection(hit))
 		AutoRotate(hit);
 }
 
@@ -88,7 +96,6 @@ void AAimAssistPackageCharacter::Move(const FInputActionValue& Value)
 
 	if (Controller != nullptr)
 	{
-		// add movement 
 		AddMovementInput(GetActorForwardVector(), MovementVector.Y);
 		AddMovementInput(GetActorRightVector(), MovementVector.X);
 	}
@@ -110,15 +117,30 @@ void AAimAssistPackageCharacter::Look(const FInputActionValue& Value)
 #pragma endregion
 
 #pragma region Rifle Handling
-void AAimAssistPackageCharacter::SetHasRifle(bool bNewHasRifle)
+void AAimAssistPackageCharacter::SetHasRifle(bool bNewHasRifle, FString RifleName)
 {
 	bHasRifle = bNewHasRifle;
+	rifleName = RifleName;
 }
 
 bool AAimAssistPackageCharacter::GetHasRifle()
 {
 	return bHasRifle;
+}	
+
+void AAimAssistPackageCharacter::DropRifle()
+{
+	TArray<USceneComponent*> Components = Mesh1P->GetAttachChildren();
+	for (auto component : Components)
+	{
+		component->DestroyComponent();
+	}
+	
+	if (WeaponToSpawn)
+		GetWorld()->SpawnActor<AActor>(WeaponToSpawn, GetTransform());
+	
 }
+
 #pragma endregion
 
 #pragma region Aim Assist
@@ -134,7 +156,7 @@ bool AAimAssistPackageCharacter::Detection(FHitResult &Hit)
 
 void AAimAssistPackageCharacter::AutoRotate(FHitResult Hit)
 {
-	FVector HitTargetRelativeLocation = Hit.GetComponent()->GetComponentLocation() - Hit.ImpactPoint;
+	FVector HitTargetRelativeLocation = SelectComponent(Hit)->GetComponentLocation() - Hit.ImpactPoint;
 	HitTargetRelativeLocation.Normalize(0.0001);
 	FRotator TransformToRotation = UKismetMathLibrary::Conv_VectorToRotator(HitTargetRelativeLocation);
 	FRotator NewRotation = UKismetMathLibrary::RInterpTo(GetController()->GetControlRotation(), TransformToRotation, UGameplayStatics::GetWorldDeltaSeconds(GetWorld()), Sensibility);
@@ -152,6 +174,46 @@ bool AAimAssistPackageCharacter::IsAimAssistEnable(float DeltaTime)
 	PreviousRotation = CurrentRotation;
 	bool bRotationSpeedExceedsLimit = FMath::Abs(rotationSpeed) > SpeedRotationThreshold;
 
-	return bRotationSpeedExceedsLimit && GetHasRifle();
+	return bRotationSpeedExceedsLimit;
+}
+
+UPrimitiveComponent* AAimAssistPackageCharacter::SelectComponent(FHitResult Hit)
+{
+	if (SelectedComponent == nullptr || SelectedComponent == Hit.GetComponent())
+	{
+		SelectedComponent = Hit.GetComponent();
+		return SelectedComponent;
+	}
+
+	float SelectedRelativeLength = (SelectedComponent->GetComponentLocation() - Hit.ImpactPoint).Size();
+	float NewComponentRelativeLength = (Hit.GetComponent()->GetComponentLocation() - Hit.ImpactPoint).Size();
+
+	if (SelectedComponent->GetName() == HighPriorityComponent)
+		SelectedRelativeLength -= ComponentSwapTreshold;
+
+	else if (Hit.GetComponent()->GetName() == HighPriorityComponent)
+		NewComponentRelativeLength -= ComponentSwapTreshold;
+
+	if (NewComponentRelativeLength < SelectedRelativeLength)
+		SelectedComponent = Hit.GetComponent();
+
+	return SelectedComponent;
 }
 #pragma endregion
+
+float AAimAssistPackageCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,	AController* EventInstigator, AActor* DamageCauser)
+{
+	CurrentHealth -= DamageAmount;
+	if (CurrentHealth <= 0)
+		KillPlayer();
+	return CurrentHealth;
+}
+
+void AAimAssistPackageCharacter::KillPlayer()
+{
+	// Get the current level name
+	const FString& CurrentLevelName = GetWorld()->GetMapName();
+
+	// Reopen the current level
+	UGameplayStatics::OpenLevel(GetWorld(), FName(*CurrentLevelName), true);
+}

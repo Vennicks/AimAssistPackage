@@ -47,9 +47,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings | Targetting")
 		TArray<TEnumAsByte<EObjectTypeQuery>> ActorsTypeToAim;
 
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings | Priority")
+		float ComponentSwapTreshold = 10;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings | Priority")
+		FString HighPriorityComponent;
+
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
 		float Sensibility = 2.0f;
-
+	
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
 		float SpeedRotationThreshold = 0.0f;
 
@@ -62,6 +68,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
 		float CapsuleHalfHeight = 25.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Statistics")
+		float HealthPointMax = 100;
+
+	UPROPERTY(EditAnywhere, Category = "Statistics")
+		TSubclassOf<AActor> WeaponToSpawn;
+
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
@@ -72,17 +84,23 @@ public:
 
 	/** Setter to set the bool */
 	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void SetHasRifle(bool bNewHasRifle);
+	void SetHasRifle(bool bNewHasRifle, FString RifleName);
 
 	/** Getter for the bool */
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 	bool GetHasRifle();
+
+	UFUNCTION(BlueprintCallable, Category = Weapon)
+	void DropRifle();
 
 	UFUNCTION(BlueprintCallable, Category = "Aim assist Utility")
 	bool Detection(FHitResult& Hit);
 
 	UFUNCTION(BlueprintCallable, Category = "Aim assist Utility")
 	void AutoRotate(FHitResult hit);
+
+	UFUNCTION(BlueprintCallable, Category = "Aim assist Utility")
+		UPrimitiveComponent* SelectComponent(FHitResult hit);
 
 protected:
 	void Move(const FInputActionValue& Value);
@@ -92,17 +110,23 @@ protected:
 	virtual void BeginPlay();
 	virtual void Tick(float v);
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
-
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 
 public:
 	AAimAssistPackageCharacter();
+	void KillPlayer();
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
 
 private:
+	bool HasDied;
 	FHitResult hit;
+	float CurrentHealth;
 	FVector PreviousRotation = FVector::Zero();
+	UPrimitiveComponent* SelectedComponent = nullptr;
+	FString rifleName;
+	FVector PlayerStartLocation;
 };
 
