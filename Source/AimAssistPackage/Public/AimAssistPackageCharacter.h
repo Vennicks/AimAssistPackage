@@ -68,8 +68,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
 		float CapsuleRadius = 25.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
-		float CapsuleHalfHeight = 25.0f;
+	float CapsuleHalfHeight = 50.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Statistics")
 		float HealthPointMax = 100;
