@@ -54,6 +54,9 @@ public:
 		FString HighPriorityComponent;
 
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
+		float OnDeathHelpMultiplicator = 1.1;
+
+	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")
 		float Sensibility = 2.0f;
 	
 	UPROPERTY(EditAnywhere, Category = "Aim Assist Settings")

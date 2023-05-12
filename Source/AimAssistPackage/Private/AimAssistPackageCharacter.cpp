@@ -130,11 +130,15 @@ bool AAimAssistPackageCharacter::GetHasRifle()
 
 void AAimAssistPackageCharacter::DropRifle()
 {
-	HeldWeapon->DestroyComponent(true);
-	SetHasRifle(false, nullptr);
-	if (WeaponToSpawn)
+	if (HeldWeapon)
 	{
-		LastPlace = GetTransform();
+		HeldWeapon->DestroyComponent(true);
+		SetHasRifle(false, nullptr);
+		if (WeaponToSpawn)
+		{
+			LastPlace = GetTransform();
+		}
+
 	}
 	
 }
@@ -155,7 +159,7 @@ bool AAimAssistPackageCharacter::Detection(FHitResult &Hit)
 void AAimAssistPackageCharacter::AutoRotate(FHitResult Hit)
 {
 	FVector HitTargetRelativeLocation = SelectComponent(Hit)->GetComponentLocation() - Hit.ImpactPoint;
-	HitTargetRelativeLocation.Normalize(0.0001);
+	HitTargetRelativeLocation.Normalize();
 	FRotator TransformToRotation = UKismetMathLibrary::Conv_VectorToRotator(HitTargetRelativeLocation);
 	FRotator NewRotation = UKismetMathLibrary::RInterpTo(GetController()->GetControlRotation(), TransformToRotation, UGameplayStatics::GetWorldDeltaSeconds(GetWorld()), Sensibility);
 
@@ -213,5 +217,11 @@ void AAimAssistPackageCharacter::KillPlayer()
 	DropRifle();
 	CurrentHealth = HealthPointMax;
 	SetActorLocation(PlayerStartLocation);
+	TArray<AActor*> actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), WeaponToSpawn, actors);
+	for (AActor *Actor : actors)
+	{
+		Actor->K2_DestroyActor();
+	}
 	GetWorld()->SpawnActor<AActor>(WeaponToSpawn, LastPlace);
 }
